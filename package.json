@@ -1,0 +1,11 @@
+{
+  "name": "tabletopplayground-scripted-ghetto-counter-optimized",
+  "version": "0.0.2",
+  "description": "A scripted snappable counter object for Tabletop Playground games",
+  "main": "Scripts/counter.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Clarence \"Sparr\" Risher",
+  "license": "MIT"
+}
