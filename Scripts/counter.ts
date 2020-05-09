@@ -7,153 +7,103 @@ import { DLListNode, GhettoCounterObject } from ".";
 
 // TTP.world.startDebugMode();
 
+// Appease the Typescript gods who would never allow us to re-type refObject
 const refGhettoCounter = TTP.refObject as GhettoCounterObject;
 
 // previous state is necessary to detect failed increment/decrement
 refGhettoCounter._previous_state = null;
 
-refGhettoCounter.getNeighborsList = function () {
-	// linked list of connected counters
-	let head: DLListNode<GhettoCounterObject> = {
-		obj: this,
-		next: null,
-		prev: null,
-	};
-	let tail = head;
-	let curr = tail;
-	let found;
+// optional references to left and right neighbors
+refGhettoCounter._neighbors = [null, null];
 
-	// find counters to the left of this one
-	while ((found = curr.obj.getPrevCounter()) && found != tail.obj) {
-		head = curr = curr.prev = { obj: found, next: curr, prev: null };
-	}
-
-	// find counters to the right of this one
-	curr = tail;
-	while ((found = curr.obj.getNextCounter()) && found != tail.obj) {
-		tail = curr = curr.next = { obj: found, next: null, prev: curr };
-	}
-
-	return { head: head, tail: tail };
-};
-
-// set the digits of this and all attached counters
+// set the digits of this and all attached counters to a specific number
 refGhettoCounter.setNumber = function (number: number) {
-	let curr: DLListNode<GhettoCounterObject> | null = this.getNeighborsList()
-		.tail;
+	let curr: GhettoCounterObject | null = this;
+	// seek to the right end of the group
+	while (curr._neighbors[1]) {
+		curr = curr._neighbors[1];
+	}
 
 	// starting on the right, set each counter to the appropriate digit
 	do {
 		let digit = number % 10;
 		number = Math.floor(number / 10);
-		curr.obj.setState(digit);
-	} while ((curr = curr.prev));
+		curr.setState(digit);
+	} while ((curr = curr._neighbors[0]));
 };
 
 // get the number represented by this and all attached counters
 refGhettoCounter.getNumber = function () {
-	let curr: DLListNode<GhettoCounterObject> | null = this.getNeighborsList()
-		.head;
+	let curr: GhettoCounterObject | null = this;
+	while (curr._neighbors[0]) {
+		curr = curr._neighbors[0];
+	}
+
 	let number = 0;
 
-	// starting on the left, set each counter to the appropriate digit
+	// starting on the left, accumulate digits from all counters
 	do {
-		number = number * 10 + curr.obj.getState();
-	} while ((curr = curr.next));
+		number = number * 10 + curr.getState();
+	} while ((curr = curr._neighbors[1]));
 
 	return number;
 };
 
-// find the counter to the "right" of this one
-refGhettoCounter.getNextCounter = function () {
-	//FIXME: use getSnappedObject when implemented in TP
-	const candidate = TTP.world.sphereOverlap(
-		this.getSnapPoint(1).getGlobalPosition(),
-		0
-	)[0] as GhettoCounterObject;
-	if (candidate?.getTemplateId() == this.getTemplateId()) {
-		return candidate;
-	}
-};
-
-// find the counter to the "left" of this one
-refGhettoCounter.getPrevCounter = function () {
-	//FIXME: use getSnappedObject when implemented in TP
-	const candidate = TTP.world.sphereOverlap(
-		this.getSnapPoint(0).getGlobalPosition(),
-		0
-	)[0] as GhettoCounterObject;
-	if (candidate?.getTemplateId() == this.getTemplateId()) {
-		return candidate;
-	}
-};
+function onStateChanged(object: GhettoCounterObject, new_state: number, old_state: number) {
+	object._previous_state = old_state;
+}
 
 // keep track of the previous state when an increment or decrement is attempted
-refGhettoCounter.onStateChanged.add(function (obj, new_state, old_state) {
-	obj._previous_state = old_state;
-});
+refGhettoCounter.onStateChanged.add(onStateChanged);
 
-// recursively increment the previous counter with rollover
-refGhettoCounter._inc_prev = function () {
-	let prev = this.getPrevCounter();
-	if (prev) {
-		let digit = prev.getState();
-		if (digit === 9) {
-			prev.setState(0);
-			prev._inc_prev();
-		} else {
-			prev.setState(digit + 1);
-		}
-	}
-};
-
-// recursively decrement the previous counter with rollover
-refGhettoCounter._dec_prev = function () {
-	let prev = this.getPrevCounter();
-	if (prev) {
-		let digit = prev.getState();
-		if (digit === 0) {
-			prev.setState(9);
-			prev._dec_prev();
-		} else {
-			prev.setState(digit - 1);
-		}
-	}
-};
-
-// increment an individual counter and potentially carry to the previous counter
 refGhettoCounter.increment = function () {
+	this.setState(this.getState() + 1);
+	return this.onIncrement();
+}
+
+refGhettoCounter.onIncrement = function() {
 	let digit = this.getState();
 	if (digit === 9 && this._previous_state === 9) {
-		this.setState(0);
-		this._inc_prev();
+		if (this._neighbors[0]?.increment()) {
+			this.setState(0);
+			return true;
+		}
+		return false;
 	}
+	return true;
 };
 
-// increment an individual counter and potentially borrow from the previous counter
 refGhettoCounter.decrement = function () {
+	this.setState(this.getState() - 1);
+	return this.onDecrement();
+}
+
+refGhettoCounter.onDecrement = function() {
 	let digit = this.getState();
 	if (digit === 0 && this._previous_state === 0) {
-		this.setState(9);
-		this._dec_prev();
+		if (this._neighbors[0]?.decrement()) {
+			this.setState(9);
+			return true;
+		}
+		return false;
 	}
+	return true;
 };
 
 // Wrapper functions for other methods needed to avoid loss of `this` context with
 // object passed from event callback.
-// object type enforced by .add() methods, TODO fix this when API is fixed
 function onNumberAction(
-	object: TTP.GameObject,
+	object: GhettoCounterObject,
 	player: TTP.Player,
 	number: number
 ) {
-	(object as GhettoCounterObject).setNumber(number);
+	object.setNumber(number);
 }
-function onPrimaryAction(object: TTP.GameObject) {
-	(object as GhettoCounterObject).increment;
+function onPrimaryAction(object: GhettoCounterObject) {
+	object.onIncrement();
 }
-function onSecondaryAction(object: TTP.GameObject) {
-	(object as GhettoCounterObject).decrement;
+function onSecondaryAction(object: GhettoCounterObject) {
+	object.onDecrement();
 }
 
 refGhettoCounter.makeDynamic = function () {
@@ -162,10 +112,61 @@ refGhettoCounter.makeDynamic = function () {
 	this.onSecondaryAction.add(onSecondaryAction);
 };
 
-refGhettoCounter.makeDynamic();
-
 refGhettoCounter.makeStatic = function () {
 	this.onNumberAction.remove(onNumberAction);
 	this.onPrimaryAction.remove(onPrimaryAction);
 	this.onSecondaryAction.remove(onSecondaryAction);
 };
+
+refGhettoCounter.makeDynamic();
+
+refGhettoCounter.forgetNeighbors = function () {
+	this._neighbors[0] && (this._neighbors[0]._neighbors[1] = null);
+	this._neighbors[1] && (this._neighbors[1]._neighbors[0] = null);
+	this._neighbors[0] = null;
+	this._neighbors[1] = null;
+};
+
+function onGrab(object: GhettoCounterObject, player: TTP.Player) {
+	object.forgetNeighbors();
+}
+
+refGhettoCounter.onGrab.add(onGrab);
+
+function onDestroyed(object: GhettoCounterObject) {
+	object.forgetNeighbors();
+}
+
+refGhettoCounter.onDestroyed.add(onDestroyed);
+
+refGhettoCounter.findNeighbors = function () {
+	for (let index = 0; index <= 1; index++) {
+		const snapPosition = this.getSnapPoint(index).getGlobalPosition();
+		const candidate = TTP.world.sphereOverlap(
+			snapPosition,
+			0
+		)[0] as GhettoCounterObject;
+		if (
+			!candidate || // didn't find a neighbor
+			candidate.getTemplateId() != this.getTemplateId() || // not a counter
+			!candidate.getPosition().equals(snapPosition, 0.01) // not snapped
+		) {
+			this._neighbors[index] = null;
+		} else {
+			this._neighbors[index] = candidate;
+			candidate._neighbors[1 - index] = this;
+		}
+	}
+};
+
+function onSnapped(
+	object: GhettoCounterObject,
+	player: TTP.Player,
+	snapPoint: TTP.SnapPoint
+) {
+	object.findNeighbors();
+}
+
+refGhettoCounter.onSnapped.add(onSnapped);
+
+refGhettoCounter.findNeighbors();

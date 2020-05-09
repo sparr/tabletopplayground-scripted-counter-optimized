@@ -31,7 +31,7 @@
 			"X": 0,
 			"Y": -3,
 			"Z": 0,
-			"Range": 5,
+			"Range": 1,
 			"SnapRotation": false,
 			"RotationOffset": 0
 		},
@@ -39,7 +39,7 @@
 			"X": 0,
 			"Y": 3,
 			"Z": 0,
-			"Range": 5,
+			"Range": 1,
 			"SnapRotation": false,
 			"RotationOffset": 0
 		}

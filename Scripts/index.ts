@@ -15,26 +15,17 @@ export interface GhettoCounterObject extends TTP.MultistateObject {
 	getPrevCounter: () => GhettoCounterObject | undefined;
 	setNumber: (number: number) => void;
 	getNumber: () => number;
-	increment: () => void;
-	decrement: () => void;
+	increment: () => boolean;
+	onIncrement: () => boolean;
+	decrement: () => boolean;
+	onDecrement: () => boolean;
 	makeDynamic: () => void;
 	makeStatic: () => void;
-
-	/**
-	 * Called when the the state of the object changes
-	 * @param {GhettoCounterObject} object - The reference object
-	 * @param {number} newState - The new state
-	 * @param {number} oldState - The state the object was in before the change
-	 */
-	onStateChanged: TTP.MulticastDelegate<
-		(
-			ghettocounterObject: GhettoCounterObject,
-			newState: number,
-			oldState: number
-		) => void
-	>;
+	findNeighbors: () => void;
+	forgetNeighbors: () => void;
 
 	_previous_state: null | number;
+	_neighbors: [GhettoCounterObject | null,GhettoCounterObject | null];
 	_inc_prev: () => void;
 	_dec_prev: () => void;
 }
