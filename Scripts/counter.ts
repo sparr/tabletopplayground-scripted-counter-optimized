@@ -57,36 +57,52 @@ function onStateChanged(object: GhettoCounterObject, new_state: number, old_stat
 refGhettoCounter.onStateChanged.add(onStateChanged);
 
 refGhettoCounter.increment = function () {
-	this.setState(this.getState() + 1);
+	console.log(this.getId() + " i " + this.getState());
+	this._previous_state = this.getState();
+	this.setState(this._previous_state + 1);
+	console.log(this.getId() + " i " + this.getState());
 	return this.onIncrement();
 }
 
 refGhettoCounter.onIncrement = function() {
+	console.log(this.getId() + " oI " + this._previous_state + " " + this.getState());
 	let digit = this.getState();
 	if (digit === 9 && this._previous_state === 9) {
+		console.log(this.getId() + " oI 99");
 		if (this._neighbors[0]?.increment()) {
+			console.log(this.getId() + " oI 90 True");
 			this.setState(0);
 			return true;
 		}
+		console.log(this.getId() + " oI 99 False");
 		return false;
 	}
+	console.log(this.getId() + " oI True");
 	return true;
 };
 
 refGhettoCounter.decrement = function () {
-	this.setState(this.getState() - 1);
+	console.log(this.getId() + " d " + this.getState());
+	this._previous_state = this.getState();
+	this.setState(this._previous_state - 1);
+	console.log(this.getId() + " d " + this.getState());
 	return this.onDecrement();
 }
 
 refGhettoCounter.onDecrement = function() {
+	console.log(this.getId() + " oD " + this._previous_state + " " + this.getState());
 	let digit = this.getState();
 	if (digit === 0 && this._previous_state === 0) {
+		console.log(this.getId() + " oD 00");
 		if (this._neighbors[0]?.decrement()) {
+			console.log(this.getId() + " oD 09 True");
 			this.setState(9);
 			return true;
 		}
+		console.log(this.getId() + " oD 00 False");
 		return false;
 	}
+	console.log(this.getId() + " oD True");
 	return true;
 };
 
@@ -149,6 +165,7 @@ refGhettoCounter.findNeighbors = function () {
 		if (
 			!candidate || // didn't find a neighbor
 			candidate.getTemplateId() != this.getTemplateId() || // not a counter
+			!candidate._neighbors || // not initialized yet
 			!candidate.getPosition().equals(snapPosition, 0.01) // not snapped
 		) {
 			this._neighbors[index] = null;

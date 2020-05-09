@@ -7,12 +7,6 @@ export interface DLListNode<T> {
 }
 
 export interface GhettoCounterObject extends TTP.MultistateObject {
-	getNeighborsList: () => {
-		head: DLListNode<GhettoCounterObject>;
-		tail: DLListNode<GhettoCounterObject>;
-	};
-	getNextCounter: () => GhettoCounterObject | undefined;
-	getPrevCounter: () => GhettoCounterObject | undefined;
 	setNumber: (number: number) => void;
 	getNumber: () => number;
 	increment: () => boolean;
