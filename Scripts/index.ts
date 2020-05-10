@@ -6,7 +6,7 @@ export interface DLListNode<T> {
 	next: DLListNode<T> | null;
 }
 
-export interface GhettoCounterObject extends TTP.MultistateObject {
+export interface ScriptedCounterObject extends TTP.MultistateObject {
 	setNumber: (number: number) => void;
 	getNumber: () => number;
 	increment: () => boolean;
@@ -19,7 +19,9 @@ export interface GhettoCounterObject extends TTP.MultistateObject {
 	forgetNeighbors: () => void;
 
 	_previous_state: null | number;
-	_neighbors: [GhettoCounterObject | null,GhettoCounterObject | null];
-	_inc_prev: () => void;
-	_dec_prev: () => void;
+	_groupends: [ScriptedCounterObject, ScriptedCounterObject];
+	_neighbors: [ScriptedCounterObject | null, ScriptedCounterObject | null];
+	_propagateGroupend: (index: number) => void;
+	_edgeLine: (edge: number, color: TTP.Color) => void;
+	_edgePoint: (edge: number, color: TTP.Color) => void;
 }

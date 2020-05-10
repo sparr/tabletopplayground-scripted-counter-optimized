@@ -1,6 +1,6 @@
 {
-  "name": "tabletopplayground-scripted-ghetto-counter-optimized",
-  "version": "0.0.2",
+  "name": "tabletopplayground-scripted-counter-optimized",
+  "version": "0.0.3",
   "description": "A scripted snappable counter object for Tabletop Playground games",
   "main": "Scripts/counter.js",
   "scripts": {
